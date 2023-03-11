@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: 2816fe9419273114a9b9ee491f9affe7
 ModelImporter:
-  serializedVersion: 19301
+  serializedVersion: 21300
   internalIDToNameTable:
   - first:
       1: 100000
@@ -959,14 +959,15 @@ ModelImporter:
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: root
     rigImportErrors: 
     rigImportWarnings: "Copied Avatar Rig Configuration mis-match. Bone length in
       copied configuration does not match position in animation file:\n\t'thigh_l'
-      : position error = 7.908472 mm\n\t'calf_l' : position error = 19.590895 mm\n\t'foot_l'
-      : position error = 3.379801 mm\n\t'ball_l' : position error = 4.160074 mm\n\t'thigh_r'
-      : position error = 7.350124 mm\n\t'calf_r' : position error = 9.582170 mm\n\t'foot_r'
-      : position error = 9.072562 mm\n\t'ball_r' : position error = 4.612142 mm\n"
+      : position error = 21.958323 mm\n\t'calf_l' : position error = 12.371493 mm\n\t'foot_l'
+      : position error = 42.369884 mm\n\t'ball_l' : position error = 4.160075 mm\n\t'thigh_r'
+      : position error = 19.722715 mm\n\t'calf_r' : position error = 11.546830 mm\n\t'foot_r'
+      : position error = 44.185684 mm\n\t'ball_r' : position error = 4.612259 mm\n"
     animationImportErrors: 
     animationImportWarnings: "\nClip 'Take 001' has import animation warnings that
       might lower retargeting quality:\nNote: Activate translation DOF on avatar
@@ -989,7 +990,7 @@ ModelImporter:
       name: Double_Jump_End_ZeroHeight
       takeName: Take 001
       internalID: 0
-      firstFrame: 0
+      firstFrame: 2
       lastFrame: 39
       wrapMode: 0
       orientationOffsetY: 0
@@ -1166,21 +1167,27 @@ ModelImporter:
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 0
     fileIdsGeneration: 1
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
+    bakeAxisConversion: 0
     preserveHierarchy: 0
     skinWeightsMode: 0
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
+    optimizeBones: 1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
   tangentSpace:
@@ -1975,12 +1982,13 @@ ModelImporter:
     hasTranslationDoF: 0
     hasExtraRoot: 1
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 43992d4f16e57574fa5d16ef485c0cbd,
-    type: 3}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 43992d4f16e57574fa5d16ef485c0cbd, type: 3}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 3
   humanoidOversampling: 1
   avatarSetup: 2
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 
   assetBundleName: 
