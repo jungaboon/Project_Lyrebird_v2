@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: 6882df1083771434ea3a2802f42c54c3
 ModelImporter:
-  serializedVersion: 19301
+  serializedVersion: 21300
   internalIDToNameTable:
   - first:
       74: 1827226128182048838
@@ -17,14 +17,15 @@ ModelImporter:
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: root
     rigImportErrors: 
     rigImportWarnings: "Copied Avatar Rig Configuration mis-match. Bone length in
       copied configuration does not match position in animation file:\n\t'thigh_l'
-      : position error = 18.622833 mm\n\t'calf_l' : position error = 5.806435 mm\n\t'foot_l'
-      : position error = 48.470203 mm\n\t'ball_l' : position error = 2.500003 mm\n\t'thigh_r'
-      : position error = 19.918879 mm\n\t'calf_r' : position error = 7.600213 mm\n\t'foot_r'
-      : position error = 42.684853 mm\n\t'ball_r' : position error = 8.103930 mm\n"
+      : position error = 18.622833 mm\n\t'calf_l' : position error = 5.806471 mm\n\t'foot_l'
+      : position error = 48.470207 mm\n\t'ball_l' : position error = 2.500012 mm\n\t'thigh_r'
+      : position error = 19.918879 mm\n\t'calf_r' : position error = 7.600222 mm\n\t'foot_r'
+      : position error = 42.684841 mm\n\t'ball_r' : position error = 8.103956 mm\n"
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -51,7 +52,7 @@ ModelImporter:
       cycleOffset: 0
       loop: 0
       hasAdditiveReferencePose: 0
-      loopTime: 0
+      loopTime: 1
       loopBlend: 0
       loopBlendOrientation: 0
       loopBlendPositionY: 0
@@ -220,21 +221,27 @@ ModelImporter:
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 0
     fileIdsGeneration: 2
     swapUVChannels: 0
     generateSecondaryUV: 0
     useFileUnits: 1
     keepQuads: 0
     weldVertices: 1
+    bakeAxisConversion: 0
     preserveHierarchy: 0
     skinWeightsMode: 0
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
+    optimizeBones: 1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
     secondaryUVAreaDistortion: 15.000001
     secondaryUVHardAngle: 88
+    secondaryUVMarginMethod: 1
+    secondaryUVMinLightmapResolution: 40
+    secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
   tangentSpace:
@@ -1029,12 +1036,13 @@ ModelImporter:
     hasTranslationDoF: 1
     hasExtraRoot: 1
     skeletonHasParents: 1
-  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 4aa852eb9ceb58746ba089cc0d666639,
-    type: 3}
+  lastHumanDescriptionAvatarSource: {fileID: 9000000, guid: 4aa852eb9ceb58746ba089cc0d666639, type: 3}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 3
   humanoidOversampling: 1
   avatarSetup: 2
+  addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 
   assetBundleName: 

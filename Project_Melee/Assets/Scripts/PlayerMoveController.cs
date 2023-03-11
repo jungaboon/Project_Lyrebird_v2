@@ -22,17 +22,19 @@ public class PlayerMoveController : MonoBehaviour
     [SerializeField] private LayerMask groundMask;
     [SerializeField] private PlayerInputHandler inputHandler;
 
-    [HideInInspector] public Vector3 moveDirection;
-    [HideInInspector] public Vector3 playerVelocity;
+    private Vector3 moveDirection;
+    private Vector3 playerVelocity;
 
-    public bool faceCameraDirection;
-    public float moveSpeed = 3f;
-    public float turnSpeed = 0.2f;
-    public float smoothDampMultiplier = 0.2f;
-    public float defaultStepOffset = 0.3f;
-    public float gravity = -9.8f;
-    public float jumpHeight = 5f;
-    public float dashDistance = 5f;
+    private bool canDoubleJump;
+    [SerializeField] private bool faceCameraDirection;
+    [SerializeField] private float groundcheckRadius = 0.2f;
+    [SerializeField] private float moveSpeed = 3f;
+    [SerializeField] private float turnSpeed = 0.2f;
+    [SerializeField] private float smoothDampMultiplier = 0.2f;
+    [SerializeField] private float defaultStepOffset = 0.3f;
+    [SerializeField] private float gravity = -9.8f;
+    [SerializeField] private float jumpHeight = 5f;
+    [SerializeField] private float dashDistance = 5f;
 
     [HideInInspector] public float turnSmoothVelocity;
     [HideInInspector] public float velocity;
@@ -43,6 +45,10 @@ public class PlayerMoveController : MonoBehaviour
 
     [SerializeField] private UnityEvent onLeaveGround;
     [SerializeField] private UnityEvent onReachGround;
+    [SerializeField] private UnityEvent onDoubleJump;
+
+    [SerializeField] private Vector3 prevHitDirection;
+    public float prevYPosition;
 
     private void OnEnable()
     {
@@ -51,6 +57,12 @@ public class PlayerMoveController : MonoBehaviour
     private void OnDisable()
     {
         inputHandler.onJump -= Jump;
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(transform.position, groundcheckRadius);
     }
 
 
@@ -83,15 +95,47 @@ public class PlayerMoveController : MonoBehaviour
         }
     }
 
+    private void LateUpdate()
+    {
+        MoveOnStuck();
+    }
+
     private void OnAnimatorMove()
     {
         moveDirection = animator.deltaPosition;
         controller.Move(moveDirection);
     }
 
+    private void MoveOnStuck()
+    {
+        if (prevHitDirection == Vector3.zero) return;
+        switch(playerState)
+        {
+            case PlayerState.Airborne:
+                if(Mathf.Abs(transform.position.y - prevYPosition) < 0.1f)
+                {
+                    moveDirection += prevHitDirection;
+                }
+                break;
+        }
+
+        prevYPosition = transform.position.y;
+    }
+
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        switch(playerState)
+        {
+            case PlayerState.Airborne:
+                prevHitDirection = hit.normal;
+                prevHitDirection.y = 0f;
+                break;
+        }
+    }
+
     public virtual void MoveControls()
     {
-        velocity = inputHandler.MoveInput().normalized.sqrMagnitude;
+        velocity = inputHandler.MoveInput().sqrMagnitude;
 
         if (velocity >= 0.01f)
         {
@@ -102,31 +146,28 @@ public class PlayerMoveController : MonoBehaviour
             moveDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
         }
 
-        animator.SetFloat(_velocity, velocity, 0.1f, Time.deltaTime);
+        animator.SetFloat(_velocity, velocity, 0.07f, Time.deltaTime);
     }
 
     public virtual void GroundCheck()
     {
-        grounded = Physics.CheckSphere(transform.position, 0.2f, groundMask);
+        grounded = Physics.CheckSphere(transform.position, groundcheckRadius, groundMask);
 
-        if (grounded)
+        switch (playerState)
         {
-            //playerVelocity.y += -2f * Time.deltaTime;
-            controller.stepOffset = defaultStepOffset;
-        }
-        else
-        {
-            controller.stepOffset = 0f;
+            case PlayerState.Normal:
+                playerVelocity.y = 0f;
+                break;
         }
 
-        playerVelocity.y += gravity * Time.deltaTime;
-
+        playerVelocity.y -= gravity * Time.deltaTime;
         controller.Move(playerVelocity * Time.deltaTime);
         animator.SetBool(_grounded, grounded);
 
         if(!grounded && previouslyGrounded)
         {
             playerState = PlayerState.Airborne;
+            canDoubleJump = true;
             onLeaveGround.Invoke();
         }
 
@@ -134,14 +175,28 @@ public class PlayerMoveController : MonoBehaviour
         {
             playerState = PlayerState.Normal;
             onReachGround.Invoke();
+            prevHitDirection = Vector3.zero;
         }
         previouslyGrounded = grounded;
     }
     public virtual void Jump()
     {
-        if (playerState != PlayerState.Normal) return;
-        playerVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-        animator.Play("Jump Start");
-        playerState = PlayerState.Airborne;
+        switch(playerState)
+        {
+            case PlayerState.Normal:
+                playerVelocity.y = Mathf.Sqrt(jumpHeight * 2f * gravity);
+                animator.Play("Jump Start");
+                playerState = PlayerState.Airborne;
+                canDoubleJump = true;
+                break;
+            case PlayerState.Airborne:
+                if (!canDoubleJump) return;
+                playerVelocity.y = Mathf.Sqrt(jumpHeight * 2f * gravity);
+                animator.Play("Double Jump Start");
+                playerState = PlayerState.Airborne;
+                canDoubleJump = false;
+                break;
+        }
+
     }
 }

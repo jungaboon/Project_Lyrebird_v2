@@ -19,6 +19,7 @@ public class PlayerMiscController : MonoBehaviour
     }
     private void Dodge()
     {
+        Debug.Log("Dodge");
         animator.SetTrigger(_dodge);
     }
 }

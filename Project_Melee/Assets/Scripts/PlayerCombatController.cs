@@ -18,6 +18,7 @@ public class PlayerCombatController : MonoBehaviour
     [Space]
     [SerializeField] private UnityEvent onStartAttack;
     [SerializeField] private UnityEvent onEndAttack;
+    [SerializeField] private UnityEvent onHitEnemy;
 
     [SerializeField] private Transform currentTarget;
     [SerializeField] private float targetRadius = 2f;
@@ -30,11 +31,13 @@ public class PlayerCombatController : MonoBehaviour
     {
         inputHandler.onLightAttack += TriggerLightAttack;
         inputHandler.onHeavyAttack += TriggerHeavyAttacks;
+        GameEvents.Instance.onResetAttacks += ResetAttackIndex;
     }
     private void OnDisable()
     {
         inputHandler.onLightAttack -= TriggerLightAttack;
         inputHandler.onHeavyAttack -= TriggerHeavyAttacks;
+        GameEvents.Instance.onResetAttacks -= ResetAttackIndex;
     }
 
     private void Update()
@@ -70,7 +73,7 @@ public class PlayerCombatController : MonoBehaviour
         {
             targetDistances.Add(Vector3.Distance(transform.position, coll[i].transform.position));
         }
-
+        if (targetDistances.Count == 0) return;
         float closestDistance = targetDistances.Min();
         int indexOfClosestTarget = targetDistances.IndexOf(closestDistance);
         currentTarget = coll[indexOfClosestTarget].transform;
@@ -85,9 +88,14 @@ public class PlayerCombatController : MonoBehaviour
             lightAttackIndex = 0;
             heavyAttackIndex = 0;
             ResetAllTriggers();
+            inputTime = inputTimer;
         }
     }
-
+    private void ResetAttackIndex()
+    {
+        lightAttackIndex = 0;
+        heavyAttackIndex = 0;
+    }
     private void ResetAllTriggers()
     {
         for (int i = 0; i < animator.parameters.Length; i++)
@@ -136,10 +144,10 @@ public class PlayerCombatController : MonoBehaviour
             float angleToTarget = Vector3.Angle(attackDirection, (coll[i].transform.position - transform.position));
             if(angleToTarget <= attackParam.attackAngle)
             {
-                Debug.Log($"Hit {coll[i]}");
-                if(coll[i].transform.TryGetComponent(out IDamage iDamage))
+                if (coll[i].transform.TryGetComponent(out IDamage iDamage))
                 {
-                    iDamage.Damage(attackDirection, attackParam.attackDamage, attackParam.knockBack, attackParam.knockbackDirection);
+                    onHitEnemy.Invoke();
+                    iDamage.Damage(attackDirection, attackParam.attackDamage, attackParam.damagePoint, attackParam.knockBack, attackParam.knockbackDirection);
                 }
             }
         }
