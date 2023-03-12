@@ -4,9 +4,10 @@ using UnityEngine;
 
 public class SMB_ResetTriggers : StateMachineBehaviour
 {
+    [SerializeField] private bool resetsGlobalAttacks = false;
     public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        GameEvents.Instance.ResetAttacks();
+        if(resetsGlobalAttacks) GameEvents.Instance.ResetAttacks();
 
         for (int i = 0; i < animator.parameters.Length; i++)
         {

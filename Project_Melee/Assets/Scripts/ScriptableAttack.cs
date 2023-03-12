@@ -18,6 +18,7 @@ public class ScriptableAttack : ScriptableObject
     public float attackRange = 1.5f;
     public float attackDamage = 1f;
     public DamagePoint damagePoint;
-    public bool knockBack = false;
+    public bool heavyHit = false;
+    [HideIf("heavyHit")] public bool knockBack = false;
     [ShowIf("knockBack")]public Vector3 knockbackDirection = Vector3.up;
 }

@@ -17,5 +17,6 @@ MonoBehaviour:
   attackRange: 1.2
   attackDamage: 1
   damagePoint: 2
+  heavyHit: 0
   knockBack: 0
   knockbackDirection: {x: 0, y: 1, z: 0}

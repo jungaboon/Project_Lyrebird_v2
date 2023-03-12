@@ -147,7 +147,7 @@ public class PlayerCombatController : MonoBehaviour
                 if (coll[i].transform.TryGetComponent(out IDamage iDamage))
                 {
                     onHitEnemy.Invoke();
-                    iDamage.Damage(attackDirection, attackParam.attackDamage, attackParam.damagePoint, attackParam.knockBack, attackParam.knockbackDirection);
+                    iDamage.Damage(attackDirection, attackParam.attackDamage, attackParam.damagePoint, attackParam.heavyHit ,attackParam.knockBack, attackParam.knockbackDirection);
                 }
             }
         }

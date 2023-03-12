@@ -6,14 +6,14 @@ using UnityEngine.Events;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMoveController : MonoBehaviour
 {
-    private enum PlayerState
+    public enum PlayerState
     {
         Normal,
         Airborne,
         Attacking,
         Hurt
     }
-    private PlayerState playerState;
+    public PlayerState playerState;
 
     [HideInInspector] public CharacterController controller;
     [HideInInspector] public Camera mainCam;
@@ -65,7 +65,10 @@ public class PlayerMoveController : MonoBehaviour
         Gizmos.DrawSphere(transform.position, groundcheckRadius);
     }
 
-
+    public void SetPlayerState(int stateIndex)
+    {
+        playerState = (PlayerState)stateIndex;
+    }
     public virtual void Start()
     {
         controller = GetComponent<CharacterController>();
@@ -156,16 +159,20 @@ public class PlayerMoveController : MonoBehaviour
         switch (playerState)
         {
             case PlayerState.Normal:
-                playerVelocity.y = 0f;
+                if(playerVelocity.y < 0f) playerVelocity.y = -5f;
+                break;
+            case PlayerState.Airborne:
+                playerVelocity.y -= gravity * Time.deltaTime;
                 break;
         }
 
-        playerVelocity.y -= gravity * Time.deltaTime;
+
         controller.Move(playerVelocity * Time.deltaTime);
         animator.SetBool(_grounded, grounded);
 
         if(!grounded && previouslyGrounded)
         {
+            // Need to make this execute BEFORE the Jump function
             playerState = PlayerState.Airborne;
             canDoubleJump = true;
             onLeaveGround.Invoke();
@@ -195,6 +202,7 @@ public class PlayerMoveController : MonoBehaviour
                 animator.Play("Double Jump Start");
                 playerState = PlayerState.Airborne;
                 canDoubleJump = false;
+                onDoubleJump.Invoke();
                 break;
         }
 
