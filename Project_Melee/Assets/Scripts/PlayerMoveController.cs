@@ -6,15 +6,7 @@ using UnityEngine.Events;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMoveController : MonoBehaviour
 {
-    public enum PlayerState
-    {
-        Normal,
-        Airborne,
-        Attacking,
-        Hurt
-    }
-    public PlayerState playerState;
-
+    [SerializeField] private PlayerStateHandler playerStateHandler;
     [HideInInspector] public CharacterController controller;
     [HideInInspector] public Camera mainCam;
     [HideInInspector] public Transform cam;
@@ -53,10 +45,12 @@ public class PlayerMoveController : MonoBehaviour
     private void OnEnable()
     {
         inputHandler.onJump += Jump;
+        playerStateHandler.onStateChange += OnStateChange;
     }
     private void OnDisable()
     {
         inputHandler.onJump -= Jump;
+        playerStateHandler.onStateChange -= OnStateChange;
     }
 
     private void OnDrawGizmos()
@@ -64,11 +58,16 @@ public class PlayerMoveController : MonoBehaviour
         Gizmos.color = Color.green;
         Gizmos.DrawSphere(transform.position, groundcheckRadius);
     }
-
-    public void SetPlayerState(int stateIndex)
+    private void OnStateChange()
     {
-        playerState = (PlayerState)stateIndex;
+        switch(playerStateHandler.PlayerState)
+        {
+            case PlayerState.Wallrunning:
+                playerVelocity.y = 0f;
+                break;
+        }
     }
+
     public virtual void Start()
     {
         controller = GetComponent<CharacterController>();
@@ -86,7 +85,7 @@ public class PlayerMoveController : MonoBehaviour
         GroundCheck();
         MoveControls();
 
-        switch(playerState)
+        switch (playerStateHandler.PlayerState)
         {
             case PlayerState.Normal:
                 animator.applyRootMotion = true;
@@ -112,7 +111,7 @@ public class PlayerMoveController : MonoBehaviour
     private void MoveOnStuck()
     {
         if (prevHitDirection == Vector3.zero) return;
-        switch(playerState)
+        switch(playerStateHandler.PlayerState)
         {
             case PlayerState.Airborne:
                 if(Mathf.Abs(transform.position.y - prevYPosition) < 0.1f)
@@ -127,7 +126,7 @@ public class PlayerMoveController : MonoBehaviour
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        switch(playerState)
+        switch(playerStateHandler.PlayerState)
         {
             case PlayerState.Airborne:
                 prevHitDirection = hit.normal;
@@ -140,13 +139,19 @@ public class PlayerMoveController : MonoBehaviour
     {
         velocity = inputHandler.MoveInput().sqrMagnitude;
 
-        if (velocity >= 0.01f)
+        switch(playerStateHandler.PlayerState)
         {
-            float targetAngle = Mathf.Atan2(inputHandler.MoveInput().x, inputHandler.MoveInput().y) * Mathf.Rad2Deg + cam.eulerAngles.y;
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothDampMultiplier);
-            transform.rotation = Quaternion.Euler(0f, angle, 0f);
+            case PlayerState.Normal:
+            case PlayerState.Airborne:
+                if (velocity >= 0.01f)
+                {
+                    float targetAngle = Mathf.Atan2(inputHandler.MoveInput().x, inputHandler.MoveInput().y) * Mathf.Rad2Deg + cam.eulerAngles.y;
+                    float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothDampMultiplier);
+                    transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-            moveDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                    moveDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                }
+                break;
         }
 
         animator.SetFloat(_velocity, velocity, 0.07f, Time.deltaTime);
@@ -156,13 +161,20 @@ public class PlayerMoveController : MonoBehaviour
     {
         grounded = Physics.CheckSphere(transform.position, groundcheckRadius, groundMask);
 
-        switch (playerState)
+        switch (playerStateHandler.PlayerState)
         {
             case PlayerState.Normal:
                 if(playerVelocity.y < 0f) playerVelocity.y = -5f;
                 break;
             case PlayerState.Airborne:
-                playerVelocity.y -= gravity * Time.deltaTime;
+                playerVelocity.y -= Time.deltaTime * gravity;
+                break;
+            case PlayerState.Climbing:
+                playerVelocity.y = 0f;
+                break;
+            case PlayerState.Wallrunning:
+                if(velocity <= 0f) playerVelocity.y -= Time.deltaTime;
+                else playerVelocity.y = 0f;
                 break;
         }
 
@@ -172,35 +184,35 @@ public class PlayerMoveController : MonoBehaviour
 
         if(!grounded && previouslyGrounded)
         {
-            // Need to make this execute BEFORE the Jump function
-            playerState = PlayerState.Airborne;
+            playerStateHandler.SetPlayerState(PlayerState.Airborne);
             canDoubleJump = true;
             onLeaveGround.Invoke();
         }
 
         if (grounded && !previouslyGrounded)
         {
-            playerState = PlayerState.Normal;
+            playerStateHandler.SetPlayerState(PlayerState.Normal);
             onReachGround.Invoke();
             prevHitDirection = Vector3.zero;
         }
+        
         previouslyGrounded = grounded;
     }
     public virtual void Jump()
     {
-        switch(playerState)
+        switch(playerStateHandler.PlayerState)
         {
             case PlayerState.Normal:
                 playerVelocity.y = Mathf.Sqrt(jumpHeight * 2f * gravity);
                 animator.Play("Jump Start");
-                playerState = PlayerState.Airborne;
+                playerStateHandler.SetPlayerState(PlayerState.Airborne);
                 canDoubleJump = true;
                 break;
             case PlayerState.Airborne:
                 if (!canDoubleJump) return;
                 playerVelocity.y = Mathf.Sqrt(jumpHeight * 2f * gravity);
                 animator.Play("Double Jump Start");
-                playerState = PlayerState.Airborne;
+                playerStateHandler.SetPlayerState(PlayerState.Airborne);
                 canDoubleJump = false;
                 onDoubleJump.Invoke();
                 break;
