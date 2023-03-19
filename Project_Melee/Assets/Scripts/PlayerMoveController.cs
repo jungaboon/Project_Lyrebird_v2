@@ -14,19 +14,18 @@ public class PlayerMoveController : MonoBehaviour
     [SerializeField] private LayerMask groundMask;
     [SerializeField] private PlayerInputHandler inputHandler;
 
-    private Vector3 moveDirection;
-    private Vector3 playerVelocity;
+    public Vector3 moveDirection;
+    public Vector3 inputDirection;
+    public Vector3 additiveDirection;
 
-    private bool canDoubleJump;
-    [SerializeField] private bool faceCameraDirection;
+    [HideInInspector] public bool canDoubleJump;
     [SerializeField] private float groundcheckRadius = 0.2f;
     [SerializeField] private float moveSpeed = 3f;
-    [SerializeField] private float turnSpeed = 0.2f;
     [SerializeField] private float smoothDampMultiplier = 0.2f;
-    [SerializeField] private float defaultStepOffset = 0.3f;
     [SerializeField] private float gravity = -9.8f;
     [SerializeField] private float jumpHeight = 5f;
-    [SerializeField] private float dashDistance = 5f;
+    private RaycastHit groundHit;
+    public float Gravity() { return gravity; }
 
     [HideInInspector] public float turnSmoothVelocity;
     [HideInInspector] public float velocity;
@@ -39,33 +38,13 @@ public class PlayerMoveController : MonoBehaviour
     [SerializeField] private UnityEvent onReachGround;
     [SerializeField] private UnityEvent onDoubleJump;
 
-    [SerializeField] private Vector3 prevHitDirection;
-    public float prevYPosition;
-
     private void OnEnable()
     {
         inputHandler.onJump += Jump;
-        playerStateHandler.onStateChange += OnStateChange;
     }
     private void OnDisable()
     {
         inputHandler.onJump -= Jump;
-        playerStateHandler.onStateChange -= OnStateChange;
-    }
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.green;
-        Gizmos.DrawSphere(transform.position, groundcheckRadius);
-    }
-    private void OnStateChange()
-    {
-        switch(playerStateHandler.PlayerState)
-        {
-            case PlayerState.Wallrunning:
-                playerVelocity.y = 0f;
-                break;
-        }
     }
 
     public virtual void Start()
@@ -74,7 +53,6 @@ public class PlayerMoveController : MonoBehaviour
         animator = GetComponent<Animator>();
         mainCam = Camera.main;
         cam = mainCam.transform;
-        controller.stepOffset = defaultStepOffset;
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -83,8 +61,9 @@ public class PlayerMoveController : MonoBehaviour
     public virtual void Update()
     {
         GroundCheck();
-        MoveControls();
-
+        GetMoveDirection();
+        ApplyMove();
+        ApplyGravity();
         switch (playerStateHandler.PlayerState)
         {
             case PlayerState.Normal:
@@ -92,56 +71,26 @@ public class PlayerMoveController : MonoBehaviour
                 break;
             case PlayerState.Airborne:
                 animator.applyRootMotion = false;
-                controller.Move(moveDirection * moveSpeed * Time.deltaTime);
                 break;
         }
     }
 
-    private void LateUpdate()
-    {
-        MoveOnStuck();
-    }
-
-    private void OnAnimatorMove()
-    {
-        moveDirection = animator.deltaPosition;
-        controller.Move(moveDirection);
-    }
-
-    private void MoveOnStuck()
-    {
-        if (prevHitDirection == Vector3.zero) return;
-        switch(playerStateHandler.PlayerState)
-        {
-            case PlayerState.Airborne:
-                if(Mathf.Abs(transform.position.y - prevYPosition) < 0.1f)
-                {
-                    moveDirection += prevHitDirection;
-                }
-                break;
-        }
-
-        prevYPosition = transform.position.y;
-    }
-
-    private void OnControllerColliderHit(ControllerColliderHit hit)
-    {
-        switch(playerStateHandler.PlayerState)
-        {
-            case PlayerState.Airborne:
-                prevHitDirection = hit.normal;
-                prevHitDirection.y = 0f;
-                break;
-        }
-    }
-
-    public virtual void MoveControls()
+    public virtual void GetMoveDirection()
     {
         velocity = inputHandler.MoveInput().sqrMagnitude;
 
         switch(playerStateHandler.PlayerState)
         {
             case PlayerState.Normal:
+                if (velocity >= 0.01f)
+                {
+                    float targetAngle = Mathf.Atan2(inputHandler.MoveInput().x, inputHandler.MoveInput().y) * Mathf.Rad2Deg + cam.eulerAngles.y;
+                    float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothDampMultiplier);
+                    transform.rotation = Quaternion.Euler(0f, angle, 0f);
+
+                    inputDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                }
+                break;
             case PlayerState.Airborne:
                 if (velocity >= 0.01f)
                 {
@@ -149,74 +98,119 @@ public class PlayerMoveController : MonoBehaviour
                     float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothDampMultiplier);
                     transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
-                    moveDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                    inputDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
                 }
+                else inputDirection = Vector3.zero;
+                break;
+            case PlayerState.Wallrunning:
+                if (velocity >= 0.01f)
+                {
+                    float targetAngle = Mathf.Atan2(inputHandler.MoveInput().x, inputHandler.MoveInput().y) * Mathf.Rad2Deg + cam.eulerAngles.y;
+                    float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, smoothDampMultiplier);
+
+                    inputDirection = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                }
+                else inputDirection = Vector3.zero;
                 break;
         }
 
         animator.SetFloat(_velocity, velocity, 0.07f, Time.deltaTime);
     }
-
-    public virtual void GroundCheck()
+    private void ApplyMove()
     {
-        grounded = Physics.CheckSphere(transform.position, groundcheckRadius, groundMask);
-
-        switch (playerStateHandler.PlayerState)
+        switch(playerStateHandler.PlayerState)
         {
             case PlayerState.Normal:
-                if(playerVelocity.y < 0f) playerVelocity.y = -5f;
                 break;
             case PlayerState.Airborne:
-                playerVelocity.y -= Time.deltaTime * gravity;
+                moveDirection = inputDirection.normalized * moveSpeed;
+                moveDirection += additiveDirection;
+                controller.Move(moveDirection * Time.deltaTime);
                 break;
             case PlayerState.Climbing:
-                playerVelocity.y = 0f;
                 break;
             case PlayerState.Wallrunning:
-                if(velocity <= 0f) playerVelocity.y -= Time.deltaTime;
-                else playerVelocity.y = 0f;
+                controller.Move(additiveDirection * Time.deltaTime);
                 break;
         }
 
-
-        controller.Move(playerVelocity * Time.deltaTime);
+        Debug.DrawRay(transform.position, inputDirection, Color.green);
+        additiveDirection = Vector3.Lerp(additiveDirection, Vector3.zero, 5f * Time.deltaTime);
+    }
+    public virtual void GroundCheck()
+    {
+        grounded = Physics.SphereCast(transform.position + transform.up * 0.1f, groundcheckRadius, Vector3.down, out groundHit, 0.5f, groundMask);
         animator.SetBool(_grounded, grounded);
 
         if(!grounded && previouslyGrounded)
         {
-            playerStateHandler.SetPlayerState(PlayerState.Airborne);
-            canDoubleJump = true;
-            onLeaveGround.Invoke();
+            OnLeaveGround();
         }
-
         if (grounded && !previouslyGrounded)
         {
-            playerStateHandler.SetPlayerState(PlayerState.Normal);
-            onReachGround.Invoke();
-            prevHitDirection = Vector3.zero;
+            OnReachGround();
         }
         
         previouslyGrounded = grounded;
+    }
+    private void OnLeaveGround()
+    {
+        playerStateHandler.SetPlayerState(PlayerState.Airborne);
+        canDoubleJump = true;
+        onLeaveGround.Invoke();
+    }
+    private void OnReachGround()
+    {
+        controller.enabled = false;
+        transform.position = new Vector3(transform.position.x, groundHit.point.y + 0.05f, transform.position.z);
+        controller.enabled = true;
+        playerStateHandler.SetPlayerState(PlayerState.Normal);
+        onReachGround.Invoke();
+        moveDirection = Vector3.zero;
+    }
+    private void ApplyGravity()
+    {
+        switch(playerStateHandler.PlayerState)
+        {
+            case PlayerState.Normal:
+                additiveDirection.y = -10f;
+                break;
+            case PlayerState.Airborne:
+                additiveDirection.y -= Time.deltaTime * gravity;
+                break;
+            case PlayerState.Climbing:
+                break;
+            case PlayerState.Wallrunning:
+                additiveDirection.y -= 2f * Time.deltaTime;
+                break;
+        }
     }
     public virtual void Jump()
     {
         switch(playerStateHandler.PlayerState)
         {
             case PlayerState.Normal:
-                playerVelocity.y = Mathf.Sqrt(jumpHeight * 2f * gravity);
-                animator.Play("Jump Start");
+                animator.Play("Jump Start", 0, 0f);
                 playerStateHandler.SetPlayerState(PlayerState.Airborne);
                 canDoubleJump = true;
+                additiveDirection.y = Mathf.Sqrt(jumpHeight * 2f * gravity);
                 break;
             case PlayerState.Airborne:
                 if (!canDoubleJump) return;
-                playerVelocity.y = Mathf.Sqrt(jumpHeight * 2f * gravity);
-                animator.Play("Double Jump Start");
+                animator.Play("Double Jump Start", 0, 0f);
                 playerStateHandler.SetPlayerState(PlayerState.Airborne);
                 canDoubleJump = false;
                 onDoubleJump.Invoke();
+                additiveDirection.y = Mathf.Sqrt(jumpHeight * 4f * gravity);
                 break;
         }
-
+    }
+    public void ResetAdditiveVelocity()
+    {
+        additiveDirection = Vector3.zero;
+    }
+    public void AddVelocity(Vector3 v)
+    {
+        additiveDirection = v;
     }
 }

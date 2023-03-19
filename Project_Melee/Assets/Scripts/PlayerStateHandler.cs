@@ -23,6 +23,7 @@ public class PlayerStateHandler : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        SetPlayerState(PlayerState.Normal);
     }
 
     public void SetPlayerState(PlayerState state)
